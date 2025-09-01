@@ -1,0 +1,29 @@
+{
+  "name": "pdf-to-jpg-converter",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@next/swc-win32-x64-msvc": "^15.5.2",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "next": "14.0.0",
+    "pdfjs-dist": "^3.11.174",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/file-saver": "^2.0.5",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.0.0"
+  }
+}
