@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -26,6 +27,24 @@ interface ConversionSettings {
   scaleFactor: number;
 }
 
+interface DailyStat {
+  date: string;
+  conversions: number;
+  users: number;
+}
+
+interface AnalyticsData {
+  totalUsers: number;
+  totalConversions: number;
+  totalFilesProcessed: number;
+  dailyStats: DailyStat[];
+  popularSettings: {
+    dpi: { [key: string]: number };
+    quality: { [key: string]: number };
+    scale: { [key: string]: number };
+  };
+}
+
 const PDFToJPGConverter: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [isConverting, setIsConverting] = useState(false);
@@ -41,6 +60,111 @@ const PDFToJPGConverter: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileDropAreaRef = useRef<HTMLDivElement>(null);
+
+  // Analytics tracking functions
+  const trackUserVisit = () => {
+    try {
+      const analytics = getAnalytics();
+      const today = new Date().toISOString().split('T')[0];
+      const userKey = localStorage.getItem('pdfConverterUserId') || generateUserId();
+      
+      // Track unique user
+      if (!localStorage.getItem('pdfConverterUserId')) {
+        localStorage.setItem('pdfConverterUserId', userKey);
+        analytics.totalUsers += 1;
+      }
+
+      // Update daily stats
+      const existingDay = analytics.dailyStats.find(d => d.date === today);
+      if (existingDay) {
+        existingDay.users = Math.max(existingDay.users, analytics.totalUsers);
+      } else {
+        analytics.dailyStats.push({
+          date: today,
+          conversions: 0,
+          users: analytics.totalUsers
+        });
+      }
+
+      saveAnalytics(analytics);
+    } catch (error) {
+      console.error('Error tracking user visit:', error);
+    }
+  };
+
+  const trackConversion = (settingsUsed: ConversionSettings, filesProcessed: number) => {
+    try {
+      const analytics = getAnalytics();
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Update totals
+      analytics.totalConversions += 1;
+      analytics.totalFilesProcessed += filesProcessed;
+
+      // Update daily stats
+      const existingDay = analytics.dailyStats.find(d => d.date === today);
+      if (existingDay) {
+        existingDay.conversions += 1;
+      } else {
+        analytics.dailyStats.push({
+          date: today,
+          conversions: 1,
+          users: analytics.totalUsers
+        });
+      }
+
+      // Track popular settings
+      const dpiKey = settingsUsed.dpi.toString();
+      const qualityKey = settingsUsed.quality.toString();
+      const scaleKey = settingsUsed.scaleFactor.toString();
+
+      analytics.popularSettings.dpi[dpiKey] = (analytics.popularSettings.dpi[dpiKey] || 0) + 1;
+      analytics.popularSettings.quality[qualityKey] = (analytics.popularSettings.quality[qualityKey] || 0) + 1;
+      analytics.popularSettings.scale[scaleKey] = (analytics.popularSettings.scale[scaleKey] || 0) + 1;
+
+      saveAnalytics(analytics);
+    } catch (error) {
+      console.error('Error tracking conversion:', error);
+    }
+  };
+
+  const generateUserId = (): string => {
+    return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  };
+
+  const getAnalytics = (): AnalyticsData => {
+    const defaultStats: AnalyticsData = {
+      totalUsers: 0,
+      totalConversions: 0,
+      totalFilesProcessed: 0,
+      dailyStats: [],
+      popularSettings: {
+        dpi: {},
+        quality: {},
+        scale: {}
+      }
+    };
+
+    try {
+      const saved = localStorage.getItem('pdfConverterAnalytics');
+      return saved ? { ...defaultStats, ...JSON.parse(saved) } : defaultStats;
+    } catch (error) {
+      return defaultStats;
+    }
+  };
+
+  const saveAnalytics = (analytics: AnalyticsData) => {
+    try {
+      localStorage.setItem('pdfConverterAnalytics', JSON.stringify(analytics));
+    } catch (error) {
+      console.error('Error saving analytics:', error);
+    }
+  };
+
+  // Track user visit on component mount
+  useEffect(() => {
+    trackUserVisit();
+  }, []);
 
   const showMessage = (message: string, isError = false) => {
     if (isError) {
@@ -183,6 +307,11 @@ const PDFToJPGConverter: React.FC = () => {
 
       const results = await Promise.all(conversionPromises);
       const successCount = results.filter(r => r.status === 'success').length;
+      
+      // Track successful conversion
+      if (successCount > 0) {
+        trackConversion(settings, successCount);
+      }
       
       setResults(results);
       setShowResults(true);
