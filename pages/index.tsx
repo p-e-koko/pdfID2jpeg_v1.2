@@ -478,29 +478,33 @@ const PDFToJPGConverter: React.FC = () => {
             <h3 style={{ marginBottom: '20px', color: '#f1f5f9' }}>Conversion Results</h3>
             <div className="results-list">
               {results.map((result, index) => (
-                <div key={index} className={`result-item ${result.status === 'error' ? 'error' : ''}`}>
-                  <div>
-                    <div className="result-filename">{result.filename}</div>
-                    <div className={`result-status ${result.status === 'error' ? 'error' : ''}`}>
-                      {result.status === 'success' ? '✓ Converted successfully' : `✗ ${result.error}`}
-                    </div>
-                  </div>
-                  {result.status === 'success' && (
-                    <button className="download-btn" onClick={() => downloadFile(result)}>
-                      Download
-                    </button>
-                  )}
-                </div>
+          <div key={index} className={`result-item ${result.status === 'error' ? 'error' : ''}`}>
+            <div>
+              <div className="result-filename">{result.filename}</div>
+              <div className={`result-status ${result.status === 'error' ? 'error' : ''}`}>
+                {result.status === 'success' ? '✓ Converted successfully' : `✗ ${result.error}`}
+              </div>
+            </div>
+            {result.status === 'success' && (
+              <button className="download-btn" onClick={() => downloadFile(result)}>
+                Download
+              </button>
+            )}
+          </div>
               ))}
             </div>
             {results.some(r => r.status === 'success') && (
               <button className="download-all-btn" onClick={downloadAll}>
-                Download All Images (ZIP)
+          Download All Images (ZIP)
               </button>
             )}
             <button className="clear-btn" onClick={clearFiles}>Clear All Files</button>
           </div>
         )}
+
+        <div className="copyright">
+          <p>© 2025 AIU ITS. All rights reserved.</p>
+        </div>
       </div>
 
       <style jsx>{`
@@ -794,6 +798,12 @@ const PDFToJPGConverter: React.FC = () => {
           cursor: pointer;
           transition: background 0.2s ease;
           width: 100%;
+        }
+
+        .copyright {
+          text-align:center;
+          color: grey;
+          font-size: 10pt;
         }
 
         .clear-btn:hover {
